@@ -37,6 +37,22 @@ server.get('/todos/:id', function(request,response){
 	}
 });
 
+// GET todo by query parameter
+server.get('/todos', function(request,response){
+	var queries = request.query;
+	var todosFiltered = todoCollection;
+	console.log('start');
+	if(queries.hasOwnProperty('completed') && queries.completed === 'true'){
+		console.log('shit is true');
+		todosFiltered = _.where(todosFiltered, {completed: true});
+	} else if(queries.hasOwnProperty('completed') && queries.completed === 'false'){
+		console.log('shit is false');
+		todosFiltered = _.where(todosFiltered, {completed: false});
+	}
+	console.log('finish');
+	response.json(todosFiltered);
+});
+
 
 // delete todo by ID
 server.delete('/todos/:id', function(request,response){
