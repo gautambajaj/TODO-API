@@ -14,14 +14,9 @@ server.get('/', function(request,response){
 	response.send('TODO API');
 });
 
-// GET todo
-server.get('/todos', function(request,response){
-	response.json(todoCollection);
-});
-
 // GET todo by ID
 server.get('/todos/:id', function(request,response){
-	var requiredID = parseInt(request.params.id,10);
+	var requiredID = paramsseInt(request.params.id,10);
 	var requiredTodo;
 
 	todoCollection.forEach(function(todo){
@@ -37,19 +32,23 @@ server.get('/todos/:id', function(request,response){
 	}
 });
 
-// GET todo by query parameter
+// GET todo by query parameters
 server.get('/todos', function(request,response){
 	var queries = request.query;
 	var todosFiltered = todoCollection;
-	console.log('start');
+	
 	if(queries.hasOwnProperty('completed') && queries.completed === 'true'){
-		console.log('shit is true');
 		todosFiltered = _.where(todosFiltered, {completed: true});
 	} else if(queries.hasOwnProperty('completed') && queries.completed === 'false'){
-		console.log('shit is false');
 		todosFiltered = _.where(todosFiltered, {completed: false});
 	}
-	console.log('finish');
+
+	if(queries.hasOwnProperty('q') && queries.q.length > 0){
+		todosFiltered = _.filter(todosFiltered, function(todo){
+			return todo.description.indexOf(queries.q) != -1;
+		});
+	}
+
 	response.json(todosFiltered);
 });
 
