@@ -1,20 +1,13 @@
 var express = require('express');
+// middleware body-parser extracts the entire body portion of an incoming request stream and exposes it on request.body
+var bodyParser = require('body-parser')
 var server = express();
 var PORT = process.env.PORT || 3000;
 
-var todoCollection = [{
-	id: 'lectures',
-	description: 'attend CS 240 lecture',
-	completed: false
-}, {
-	id: 'shopping',
-	description: 'do groceries',
-	completed: true
-}, {
-	id: 'projects',
-	description: 'finish TODO project',
-	completed: false
-}];
+var todoCollection = [];
+var nextTodoID = 1;
+
+server.use(bodyParser.json());
 
 server.get('/', function(request,response){
 	response.send('TODO API');
@@ -41,6 +34,16 @@ server.get('/todos/:id', function(request,response){
 	} else {
 		response.status(404).send();
 	}
+});
+
+// POST todo
+server.post('/todos', function(request,response){
+	var body = request.body;
+	body.id = nextTodoID;
+	++nextTodoID;
+
+	todoCollection.push(body);
+	response.json(body);
 });
 
 server.listen(PORT, function(){
