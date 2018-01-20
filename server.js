@@ -58,20 +58,22 @@ server.get('/todos', function(request,response){
 // delete todo by ID
 server.delete('/todos/:id', function(request,response){
 	var requiredID = parseInt(request.params.id,10);
-	var requiredTodo;
 
-	todoCollection.forEach(function(todo){
-		if(requiredID === todo.id){
-			requiredTodo = todo;
+	db.todo.destroy({
+		where: {
+			id: requiredID
 		}
+	}).then(function(numDeletedRows){
+		if(numDeletedRows === 0){
+			response.status(404).json({
+				error: 'id not found'
+			})
+		} else {
+			response.status(204).send();
+		}
+	}, function(){
+		response.status(500).send();
 	});
-
-	if(requiredTodo){
-		todoCollection = _.without(todoCollection,requiredTodo);
-		response.json(requiredTodo);
-	} else {
-		response.status(404).send();
-	}
 });
 
 
@@ -89,19 +91,7 @@ server.post('/todos', function(request,response){
 // PUT todo by ID
 server.put('/todos/:id', function(request,response){
 	var body = _.pick(request.body, 'description', 'completed');
-
 	var requiredID = parseInt(request.params.id,10);
-	var requiredTodo;
-	todoCollection.forEach(function(todo){
-		if(requiredID === todo.id){
-			requiredTodo = todo;
-		}
-	});
-
-	if(!requiredTodo){
-		return response.status(404).send();
-	}
-
 	var putAttributes = {};
 
 	if(body.hasOwnProperty('description') && _.isString(body.description)){
@@ -116,8 +106,20 @@ server.put('/todos/:id', function(request,response){
 		return response.status(400).send();
 	}
 
-	_.extend(requiredTodo,putAttributes);
-	response.json(requiredTodo);
+	db.todo.findById(requiredID).then(function(todo){
+		if(todo){
+			todo.update(putAttributes).then(function(todo){
+				response.json(todo.toJSON());
+			}, function(e){	// failure callback
+				response.status(400).json(e);
+			});
+
+		} else {
+			response.status(404).send();
+		}
+	}, function(){	// success callback
+		response.status(500).send();
+	}); 
 });
 
 db.sequelize.sync().then(function() {
