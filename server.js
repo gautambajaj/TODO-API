@@ -17,40 +17,41 @@ server.get('/', function(request,response){
 
 // GET todo by ID
 server.get('/todos/:id', function(request,response){
-	var requiredID = paramsseInt(request.params.id,10);
-	var requiredTodo;
+	var requiredID = parseInt(request.params.id,10);
 
-	todoCollection.forEach(function(todo){
-		if(requiredID === todo.id){
-			requiredTodo = todo;
-		}
+	db.todo.findById(requiredID).then(function(todo){
+		if(!!todo){
+			response.json(todo.toJSON());
+		} else{
+			response.status(404).send();
+		}	
+	}, function(e){
+		response.status(500).send();
 	});
-
-	if(requiredTodo){
-		response.json(requiredTodo);
-	} else {
-		response.status(404).send();
-	}
 });
 
 // GET todo by query parameters
 server.get('/todos', function(request,response){
-	var queries = request.query;
-	var todosFiltered = todoCollection;
-	
-	if(queries.hasOwnProperty('completed') && queries.completed === 'true'){
-		todosFiltered = _.where(todosFiltered, {completed: true});
-	} else if(queries.hasOwnProperty('completed') && queries.completed === 'false'){
-		todosFiltered = _.where(todosFiltered, {completed: false});
+	var query = request.query;
+	var where = {};
+
+	if(query.hasOwnProperty('completed') && query.completed === 'true'){
+		where.completed = true;
+	} else if(query.hasOwnProperty('completed') && query.completed === 'false'){
+		where.completed = false;
 	}
 
-	if(queries.hasOwnProperty('q') && queries.q.length > 0){
-		todosFiltered = _.filter(todosFiltered, function(todo){
-			return todo.description.indexOf(queries.q) != -1;
-		});
+	if(query.hasOwnProperty('q') && query.q.length > 0){
+		where.description = {
+			$like: '%' + query.q + '%'
+		};
 	}
 
-	response.json(todosFiltered);
+	db.todo.findAll({where: where}).then(function(todoCollection){
+		response.json(todoCollection);
+	}, function(e){
+		response.status(500).send();
+	});
 });
 
 
@@ -83,15 +84,6 @@ server.post('/todos', function(request,response){
 	}), function(e){
 		response.status(400).json(e);
 	}
-	/*if(!_.isString(body.description) || !_.isBoolean(body.completed)){
-		return response.status(400).send(); // bad request
-	}
-
-	body.id = nextTodoID;
-	++nextTodoID;
-
-	todoCollection.push(body);
-	response.json(body);*/
 });
 
 // PUT todo by ID
