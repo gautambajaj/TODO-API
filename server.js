@@ -3,8 +3,9 @@ var express = require('express');
 var bodyParser = require('body-parser')
 var server = express();
 var _ = require('underscore');
-var PORT = process.env.PORT || 3000;
+var db = require('./db.js');
 
+var PORT = process.env.PORT || 3000;
 var todoCollection = [];
 var nextTodoID = 1;
 
@@ -77,7 +78,12 @@ server.delete('/todos/:id', function(request,response){
 server.post('/todos', function(request,response){
 	var body = _.pick(request.body, 'description', 'completed');
 
-	if(!_.isString(body.description) || !_.isBoolean(body.completed)){
+	db.todo.create(body).then(function(todo){
+		response.json(todo.toJSON());
+	}), function(e){
+		response.status(400).json(e);
+	}
+	/*if(!_.isString(body.description) || !_.isBoolean(body.completed)){
 		return response.status(400).send(); // bad request
 	}
 
@@ -85,7 +91,7 @@ server.post('/todos', function(request,response){
 	++nextTodoID;
 
 	todoCollection.push(body);
-	response.json(body);
+	response.json(body);*/
 });
 
 // PUT todo by ID
@@ -122,6 +128,8 @@ server.put('/todos/:id', function(request,response){
 	response.json(requiredTodo);
 });
 
-server.listen(PORT, function(){
-	console.log('TODO API');
-});
+db.sequelize.sync().then(function() {
+	server.listen(PORT, function(){
+		console.log('TODO API');
+	});
+})
